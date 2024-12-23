@@ -3,8 +3,8 @@ import os
 import sys
 import esprima  # Esprima for JavaScript parsing
 from Types.MultiLabelling import MultiLabelling
-from Types.Vulnerability import Vulnerabilities
-from program_reader import analyse_node
+from Types.Vulnerabilities import Vulnerabilities
+#from program_reader import analyse_node
 from pattern_reader import read_pattern
 
 # Directory to store output files

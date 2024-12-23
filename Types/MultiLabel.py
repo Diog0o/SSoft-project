@@ -1,5 +1,5 @@
-from Label import Label
-from Pattern import Pattern
+from Types.Label import Label
+from Types.Pattern import Pattern
 
 class MultiLabel:
   '''
