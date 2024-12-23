@@ -68,7 +68,7 @@ def ensure_output_directory():
 def main():
     if len(sys.argv) < 3:
         print("[ERROR] Missing required arguments.")
-        print("Usage: python3 js_analyser.py <javascript_file.js> <patterns.json>")
+        print("Usage: python3 javascript_parser.py <javascript_file.js> <patterns.json>")
         sys.exit(1)
 
     js_file = sys.argv[1]
