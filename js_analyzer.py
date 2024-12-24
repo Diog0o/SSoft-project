@@ -127,7 +127,7 @@ def parse_js_file(filepath: str) -> dict:
     """
     try:
         with open(filepath, "r") as file:
-            js_code = file.read()
+            js_code = file.read().strip()
             ast = esprima.parseScript(js_code, loc=True, comment=True)
         # Save AST to a JSON file for inspection
         with open("parsed_ast.json", "w") as debug_file:
@@ -140,7 +140,7 @@ def parse_js_file(filepath: str) -> dict:
 if __name__ == "__main__":
     if len(sys.argv) < 3:
         print("[INVALID USAGE]")
-        print("Usage: python3 js_analyser.py <slice.js> <patterns.json>")
+        print("Usage: python3 js_analyzer.py <slice.js> <patterns.json>")
         exit()
 
     js_slice_file_path = sys.argv[1]
