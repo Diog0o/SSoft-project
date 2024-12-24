@@ -1,62 +1,83 @@
+
+import copy
+
+
 class Label:
-  def __init__(self, sources_and_sanitizers: dict[tuple[str, int], list[set[tuple[str, int]]]] = None):
-        self.sources_and_sanitizers = sources_and_sanitizers if sources_and_sanitizers is not None else {}
+    '''
+    Track the {sources} and {sanitizers} that influenced a variable
 
+    a = dang         {a} label = { (dang, 1): [] }
+    b = dang         {b} label = { (dang, 1): [] }
+    b = san(b)       {b} label = { (dang, 1): [[("san", 1)]] }
+    c = a + b        {c} label = { (dang, 1): [[("san", 1)], []] }
+    INTERSECTION
+    Drawback: 
+        In the end, there is no way to know which sources were neutralized by which sanitizers,
+        only the sanitizers that were applied to the variable along the information flow 
+    '''
+    def __init__(self, sources_w_sanitizers: dict[tuple[str, int], list[set[tuple[str, int]]]] = { }):
+        self._sources_w_sanitizers = copy.deepcopy(sources_w_sanitizers)
 
-  def get_sources (self):
-    return self.sources_and_sanitizers.keys()
-  
-  def get_sanitizers_of_source (self, source: str, line_number: int):
-    tuple_source = (source, line_number)
-    if tuple_source in self.sources_and_sanitizers:
-      return self.sources_and_sanitizers[tuple_source]
-    return None
-  
-  def get_sources_and_sanitizers (self):
-    return self.sources_and_sanitizers
+    def add_source(self, source):
+        # If source already exists resets its sanitization paths
+        self._sources_w_sanitizers[source] = list()
+        # adds 1 unsanitized path
+        self._sources_w_sanitizers[source].append(set())
 
-  def add_source (self, source: str, line_number: int):
-    source_tuple = (source, line_number)
-    self.sources_and_sanitizers[source_tuple] = list()
-    self.sources_and_sanitizers[source_tuple].append(set())
+    def add_sanitizer(self, sanitizer: str, line_number: int):
+        '''
+        Sanitizes all sources of this Label
 
-  def add_sanitizer (self, sanitizer: str, line_number: int ):
-    sanitizer_tuple = (sanitizer, line_number)
-    for sources in self.get_sources():
-      for paths in self.sources_and_sanitizers[sources]:
-        paths.add(sanitizer_tuple)
+        sources_n_sanitizers => { ("a", 1): [ [("san1", 1), ("san2", 2)], [("san3", 2)], [] ] }
+        add_sanitizer("san4")
+        sources_n_sanitizers => { ("a", 1): [ [("san1", 1), ("san2", 2), ("san4", 1)], [("san3", 2), ("san4", 1)], [("san4", 1)] ] }
+        '''
+        for source in self.get_sources():
+            for sanitization_paths in self._sources_w_sanitizers[source]:
+                sanitization_paths.add((sanitizer, line_number))
 
-  def combine_labels (self, other : "Label"):
-    merged_label: dict[tuple[str, int], list[set[tuple[str, int]]]] = {}
-    for source in list(self.get_sources_and_sanitizers()) + list(other.get_sources_and_sanitizers()):
-      if source in self.get_sources_and_sanitizers() and source in other.get_sources_and_sanitizers():
-        # We have the source in both Labels so we need to merge the sanitizers removing duplicates
-        merged_label[source] = self.get_sanitizers_of_source(source[0], source[1]) + other.get_sanitizers_of_source(source[0],source[1])
-        for sanitizers in merged_label[source]:
-          if merged_label[source].count(sanitizers) > 1:
-            merged_label[source].remove(sanitizers)
-      
-      elif source in self.sources_and_sanitizers.keys():
-        # We only have the source in the first Label
-        merged_label[source] = self.get_sanitizers_of_source(source[0], source[1])
-      
-      elif source in other.sources_and_sanitizers.keys():
-        # We only have the source in the second Label
-        merged_label[source] = other.get_sanitizers_of_source(source[0], source[1])
-    return Label(merged_label)
-  
-  def deep_copy(self):
-      copyLabel = Label()
-      # Call the method properly to get the dictionary
-      for source, sanitization_paths in self.get_sources_and_sanitizers().items():
-          copy_sanitization_paths: list[set[tuple[str, int]]] = []
-          for original_sanitization_flow in sanitization_paths:
-              sanitization_flow: set[tuple[str, int]] = set()
-              for original_sanitizer in original_sanitization_flow:
-                  sanitization_flow.add((original_sanitizer[0], original_sanitizer[1]))
-              copy_sanitization_paths.append(sanitization_flow)
-          # Ensure you are using the correct attribute to set values
-          copyLabel.sources_and_sanitizers[source] = copy_sanitization_paths
-      return copyLabel
+    def get_sources(self):
+        return self._sources_w_sanitizers.keys()
+    
+    def get_source_sanitizers(self, source: str, line_number: int) -> list[set[tuple[str, int]]]:
+        return self._sources_w_sanitizers[(source, line_number)]
+    
+    def get_sources_and_sanitizers(self):
+        return self._sources_w_sanitizers
 
+    def deep_copy(self):
+        clonedLabel = Label()
+        for source, original_sanitization_flows in self._sources_w_sanitizers.items():
+            sanitization_flows: list[set[tuple[str, int]]] = list()
+            for original_sanitization_flow in original_sanitization_flows:
+                sanitization_flow: set[tuple[str, int]] = set()
+                for original_sanitizer in original_sanitization_flow:
+                    sanitization_flow.add((original_sanitizer[0], original_sanitizer[1]))
+                sanitization_flows.append(sanitization_flow)
+            clonedLabel._sources_w_sanitizers[source] = sanitization_flows
+        return clonedLabel
 
+    def combine(self, other_label: "Label") -> "Label":
+        mergedSourcesAndSanitizers: dict[tuple[str, int], list[set[tuple[str, int]]]] = {}
+        
+        for source in list(self.get_sources_and_sanitizers()) + list(other_label.get_sources_and_sanitizers()):
+            if source in self.get_sources_and_sanitizers() and source in other_label.get_sources_and_sanitizers():
+                '''
+                self => { ("a", 1): [ [("san1", 1), ("san2", 2)], [("san3", 2)], [] ] }
+                other => { ("a", 1): [ [("san3", 2)], [] ] }
+                combined => { ("a", 1): [ [("san1", 1), ("san2", 2)], [("san3", 2)], [], [("san3", 2)], [] ] }
+                    just merge lists, removing duplicates
+                '''
+                mergedSourcesAndSanitizers[source] = self.get_source_sanitizers(source[0], source[1]) + other_label.get_source_sanitizers(source[0], source[1])
+                # Remove duplicates
+                for san_path in mergedSourcesAndSanitizers[source]:
+                    if mergedSourcesAndSanitizers[source].count(san_path) > 1:
+                        mergedSourcesAndSanitizers[source].remove(san_path)
+            elif source in self.get_sources_and_sanitizers():
+                # not in {other}
+                mergedSourcesAndSanitizers[source] = self.get_source_sanitizers(source[0], source[1])
+            elif source in other_label.get_sources_and_sanitizers():
+                # not in {self}
+                mergedSourcesAndSanitizers[source] = other_label.get_source_sanitizers(source[0], source[1])
+
+        return Label(mergedSourcesAndSanitizers)

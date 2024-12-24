@@ -1,61 +1,29 @@
-from typing import List
+from Types.Label import Label
+from Types.MultiLabel import MultiLabel
 from Types.Pattern import Pattern
-from Types.MultiLabel import MultiLabel, Label
-
 
 class Policy:
-    '''
-    Represents an information flow policy that uses a pattern database to recognize illegal flows.
-
-    Attributes:
-        patterns (list[Pattern]): A list of vulnerability patterns to be considered.
-    '''
-
-    def __init__(self, patterns: List[Pattern]):
+    def __init__(self, patterns: list[Pattern]):
         self.patterns = patterns
 
-    def get_vulnerability_names(self) -> List[str]:
-        return [pattern.get_vulnerability_name() for pattern in self.patterns]
+    def get_all_vulnerability_names(self):
+        return [pattern.name for pattern in self.patterns]
 
-    def get_vulnerabilities_with_source(self, source_name: str) -> List[str]:
-        return [pattern.get_vulnerability_name() for pattern in self.patterns if pattern.is_source(source_name)]
+    def get_sources_for_name(self, name: str):
+        return [pattern.name for pattern in self.patterns if pattern.is_source(name)]
 
-    def get_vulnerabilities_with_sanitizer(self, sanitizer_name: str) -> List[str]:
-        return [pattern.get_vulnerability_name() for pattern in self.patterns if pattern.is_sanitizer(sanitizer_name)]
+    def get_sanitizers_for_name(self, name: str):
+        return [pattern.name for pattern in self.patterns if pattern.is_sanitizer(name)]
 
-    def get_vulnerabilities_with_sink(self, sink_name: str) -> List[str]:
-        return [pattern.get_vulnerability_name() for pattern in self.patterns if pattern.is_sink(sink_name)]
+    def get_sinks_for_name(self, name: str):
+        return [pattern.name for pattern in self.patterns if pattern.is_sink(name)]
 
-    def get_pattern_by_name(self, vulnerability_name: str) -> Pattern | None:
+    def get_pattern_by_name(self, name: str) -> Pattern | None:
         for pattern in self.patterns:
-            if pattern.get_vulnerability_name == vulnerability_name: return pattern
+            if pattern.name == name: return pattern
         return None
- 
-    # #Isto pode muito bem tar mal. VERIFICAR
-    # def detect_illegal_flows(self, sink_name: str, multilabel: MultiLabel) -> MultiLabel:
-    #     """
-    #     Given a sink name and a MultiLabel, detects illegal flows.
 
-    #     :param sink_name: The sink name being analyzed.
-    #     :param multilabel: A MultiLabel object describing the information flowing to the sink.
-    #     :return: A new MultiLabel containing only the illegal flows for the given sink.
-    #     """
-    #     # Create a new MultiLabel for the illegal flows
-    #     illegal_multilabel = MultiLabel(self.patterns)
-
-    #     for pattern_name, label in multilabel.labels.items():
-    #         # Get the pattern associated with the current label
-    #         pattern = multilabel.patterns[pattern_name]
-
-    #         # Check if the pattern recognizes the sink
-    #         if pattern.is_sink(sink_name) and len(pattern.get_sources()) > 0:
-    #             if len(pattern.get_sources()) > 0:
-    #                 illegal_multilabel.add_label_to_pattern(pattern_name, label.deep_copy())
-    #     if len(illegal_multilabel.labels) == 0:
-    #         return None
-    #     return illegal_multilabel
-
-    def detect_illegal_flows(self, sink_name: str, multilabel: MultiLabel) -> MultiLabel | None:
+    def determine_illegal_flows(self, sink_name: str, multilabel: MultiLabel) -> MultiLabel | None:
         illegal_multilabel = MultiLabel(self.patterns)
 
         '''
@@ -72,6 +40,6 @@ class Policy:
             # Ex: sink_name = a.b
             for sink in sink_name.split("."):
                 if pattern.is_sink(sink) and len(pattern_label.get_sources()) > 0:
-                    illegal_multilabel.add_label_to_pattern(pattern.get_vulnerability_name, pattern_label.deep_copy())
+                    illegal_multilabel.add_label(pattern.name, pattern_label.deep_copy())
 
         return None if len(illegal_multilabel.labels.keys()) == 0 else illegal_multilabel

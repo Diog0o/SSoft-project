@@ -1,73 +1,78 @@
+import copy
 from Types.Label import Label
 from Types.Pattern import Pattern
 
+
 class MultiLabel:
-  '''
-    A class to manage multiple labels, each corresponding to a specific vulnerability pattern.
-
-    Attributes:
-        labels (Dict[str, Label]): A dictionary mapping pattern names to their respective Label objects.
-        patterns (Dict[str, Pattern]): A dictionary mapping pattern names to their respective Pattern objects.
     '''
-  
-  def __init__(self, patterns: list[Pattern]):
+    Maps {Labels} to {Patterns}
+
+    Ex: 
+    {
+        'pattern_1': Label,
+        'pattern_2': Label,
+    }
     '''
-    Constructor for the MultiLabel class.
+    def __init__(self, patterns: list[Pattern]):
+        # key: pattern name
+        # value: Label
+        self.labels: dict[str, Label] = {}
+        for pattern in patterns:
+            self.labels[pattern.name] = Label()
 
-    :param patterns: List of Pattern objects (list of Pattern objects)
-    '''
-    self.labels: dict[str, Label] = {}
-    for pattern in patterns:
-      self.labels[pattern.get_vulnerability_name()] = Label()
-
-    self.patterns: dict[str, Pattern] = {}
-    for pattern in patterns:
-      self.patterns[pattern.get_vulnerability_name()] = pattern
-
-
-  def add_label_to_pattern(self, pattern_name: str, label: Label):
-    self.labels[pattern_name] = label
-
-  def update_label_of_pattern(self, pattern_name: str, label: Label, is_implicit: bool):
-    if is_implicit:
-      if self.patterns[pattern_name].implicit:
-        self.add_label_to_pattern(pattern_name, label)
-    else:
-      self.add_label_to_pattern(pattern_name, label)
-
-  def add_source_to_pattern(self, pattern_name: str, source: str, line_number: int):
-    self.labels[pattern_name].add_source(source, line_number)
-
-  def add_sorce_to_all_patterns(self, source: str, line_number: int):
-    for pattern in self.patterns:
-      self.add_source_to_pattern(pattern, source, line_number)
-
-  def add_sanitizer_to_pattern(self, pattern_name: str, sanitizer: str, line_number: int):
-    if pattern_name in self.labels:
-      self.labels[pattern_name].add_sanitizer(sanitizer, line_number)
-
-  def convert_implicit(self):
-    for pattern_name, label in self.labels.items():
-      if not self.patterns[pattern_name].implicit:
-        # Reset Labels for {patterns} that don't want to include implicit flows
-        self.labels[pattern_name] = Label()
-
-
-  def get_sources_of_pattern (self, pattern_name: str):
-    if pattern_name in self.labels:
-      return self.labels[pattern_name].get_sources()
-    else:
-      return set()
+        self.patterns: dict[str, Pattern] = {}
+        for pattern in patterns:
+            self.patterns[pattern.name] = pattern
     
-  def deep_copy(self):
-    copy_multilabel = MultiLabel(list(self.patterns.values()))
-    for pattern_name, label in self.labels.items():
-      copy_multilabel.labels[pattern_name] = label.deep_copy()
-    return copy_multilabel
+    def print(self):
+        print("-- PRINT --")
+        for pattern_name, label in self.labels.items():
+            print(pattern_name, ":", label._sources_w_sanitizers)
+        print("-- END PRINT --")
 
-  def combine_multilabel(self, other_multilabel: "MultiLabel"):
-    combined_multilabel: MultiLabel = other_multilabel.deep_copy()
-    for pattern_name, label in self.labels.items():
-        combined_multilabel.labels[pattern_name] = label.combine_labels(other_multilabel.labels[pattern_name])
+    def add_label(self, pattern_name: str, label: Label):
+        self.labels[pattern_name] = label
 
-    return combined_multilabel
+    def update_label(self, pattern: str, label: Label, if_implicit: bool = False):
+        if if_implicit:
+            if self.patterns[pattern].implicit:
+                self.labels[pattern] = label
+        else:
+            self.labels[pattern] = label
+
+    def add_source(self, pattern_name: str, source: str, line_number: int):
+        self.labels[pattern_name].add_source((source, line_number))
+
+    # To use when an undefined {name} impacts a MultiLabel
+    def add_source_to_all(self, source: str, line_number: int):
+        for pattern_name in self.labels.keys():
+            self.labels[pattern_name].add_source((source, line_number))
+
+    def add_sanitizer(self, pattern_name, sanitizer: str, line_number: int):
+        if pattern_name in self.labels:
+            self.labels[pattern_name].add_sanitizer(sanitizer, line_number)
+
+    def convert_implicit(self):
+        for pattern_name, label in self.labels.items():
+            if not self.patterns[pattern_name].implicit:
+                # Reset Labels for {patterns} that don't want to include implicit flows
+                self.labels[pattern_name] = Label()
+
+    def get_sources(self, pattern_name):
+        if pattern_name in self.labels:
+            return self.labels[pattern_name].get_sources_and_sanitizers().keys()
+        return set()
+    
+    def deep_copy(self):
+        clonedML = MultiLabel(list(self.patterns.values()))
+        for pattern_name, label in self.labels.items():
+            clonedML.labels[pattern_name] = label.deep_copy()
+        return clonedML
+
+    def combine(self, other_multi_label: "MultiLabel"):
+        combined_multi_label: MultiLabel = other_multi_label.deep_copy()
+
+        for pattern_name, label in self.labels.items():
+            combined_multi_label.labels[pattern_name] = label.combine(other_multi_label.labels[pattern_name])
+
+        return combined_multi_label

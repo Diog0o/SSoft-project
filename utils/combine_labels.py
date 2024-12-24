@@ -1,4 +1,3 @@
-#import multilabel
 from Types.MultiLabel import MultiLabel
 
 def combineMultiLabels(l1: MultiLabel | None, l2: MultiLabel | None) -> MultiLabel | None:
