@@ -46,15 +46,17 @@ class Label:
     return Label(merged_label)
   
   def deep_copy(self):
-        copyLabel = Label()
-        for source, sanitization_paths in self.get_sources_and_sanitizers.items():
-            copy_sanitization_paths: list[set[tuple[str, int]]] = []
-            for original_sanitization_flow in sanitization_paths:
-                sanitization_flow: set[tuple[str, int]] = set()
-                for original_sanitizer in original_sanitization_flow:
-                    sanitization_flow.add((original_sanitizer[0], original_sanitizer[1]))
-                copy_sanitization_paths.append(sanitization_flow)
-            copyLabel.get_sources_and_sanitizers[source] = copy_sanitization_paths
-        return copyLabel
+      copyLabel = Label()
+      # Call the method properly to get the dictionary
+      for source, sanitization_paths in self.get_sources_and_sanitizers().items():
+          copy_sanitization_paths: list[set[tuple[str, int]]] = []
+          for original_sanitization_flow in sanitization_paths:
+              sanitization_flow: set[tuple[str, int]] = set()
+              for original_sanitizer in original_sanitization_flow:
+                  sanitization_flow.add((original_sanitizer[0], original_sanitizer[1]))
+              copy_sanitization_paths.append(sanitization_flow)
+          # Ensure you are using the correct attribute to set values
+          copyLabel.sources_and_sanitizers[source] = copy_sanitization_paths
+      return copyLabel
 
 

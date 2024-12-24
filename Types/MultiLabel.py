@@ -46,11 +46,11 @@ class MultiLabel:
     if pattern_name in self.labels:
       self.labels[pattern_name].add_sanitizer(sanitizer, line_number)
 
-  # def convert_implicit(self):
-  #   for pattern_name, label in self.labels.items():
-  #     if not self.patterns[pattern_name].implicit:
-  #       # Reset Labels for {patterns} that don't want to include implicit flows
-  #       self.labels[pattern_name] = Label()
+  def convert_implicit(self):
+    for pattern_name, label in self.labels.items():
+      if not self.patterns[pattern_name].implicit:
+        # Reset Labels for {patterns} that don't want to include implicit flows
+        self.labels[pattern_name] = Label()
 
 
   def get_sources_of_pattern (self, pattern_name: str):
