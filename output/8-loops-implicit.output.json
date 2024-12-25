@@ -10,7 +10,8 @@
       5
     ],
     "unsanitized_flows": "yes",
-    "sanitized_flows": []
+    "sanitized_flows": [],
+    "implicit": "no"
   },
   {
     "vulnerability": "A_2",
@@ -23,7 +24,8 @@
       5
     ],
     "unsanitized_flows": "yes",
-    "sanitized_flows": []
+    "sanitized_flows": [],
+    "implicit": "no"
   },
   {
     "vulnerability": "A_3",
@@ -43,7 +45,8 @@
           7
         ]
       ]
-    ]
+    ],
+    "implicit": "no"
   },
   {
     "vulnerability": "A_4",
@@ -63,6 +66,7 @@
           7
         ]
       ]
-    ]
+    ],
+    "implicit": "no"
   }
 ]

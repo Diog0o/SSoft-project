@@ -3,6 +3,8 @@ from Types.MultiLabelling import MultiLabelling
 from Types.Policy import Policy
 from Types.Vulnerabilities import Vulnerabilities
 from utils.combine_labels import combineMultiLabels
+
+
 def _get_name(node) -> str:
     if node["type"] == "MemberExpression":
         return f"{_get_name(node['object'])}.{node['property']['name']}"
@@ -13,6 +15,8 @@ def _get_name(node) -> str:
             return node["callee"]["name"]
     else:
         return node["name"]
+    
+
 def assignment(node, policy: Policy, multi_labelling: MultiLabelling, vulnerabilities: Vulnerabilities, is_aug: bool, while_intermediate_evals: bool, implicit_flow_multilabel: MultiLabel | None) -> None:
     value = analyse_node(node["right"], policy, multi_labelling, vulnerabilities, while_intermediate_evals, implicit_flow_multilabel)
     varname = _get_name(node["left"])
@@ -33,6 +37,7 @@ def assignment(node, policy: Policy, multi_labelling: MultiLabelling, vulnerabil
         if illegal_flows:
             vulnerabilities.save_vulnerabilities(varname, node["loc"]["start"]["line"], illegal_flows, policy)
     return None
+
 
 def function_call(node, policy: Policy, multi_labelling: MultiLabelling, vulnerabilities: Vulnerabilities, while_intermediate_evals: bool, implicit_flow_multilabel: MultiLabel | None) -> MultiLabel | None:
     function_complete_name = _get_name(node)
@@ -60,17 +65,24 @@ def function_call(node, policy: Policy, multi_labelling: MultiLabelling, vulnera
             vulnerabilities.save_vulnerabilities(function_name, node["loc"]["start"]["line"], illegal_flows, policy)
     return final_multilabel
 
+
 def binop(node, policy: Policy, multi_labelling: MultiLabelling, vulnerabilities: Vulnerabilities, while_intermediate_evals: bool, implicit_flow_multilabel: MultiLabel | None) -> MultiLabel | None:
     left = analyse_node(node["left"], policy, multi_labelling, vulnerabilities, False, implicit_flow_multilabel)
     right = analyse_node(node["right"], policy, multi_labelling, vulnerabilities, False, implicit_flow_multilabel)
     return combineMultiLabels(left, right)
+
+
 def unaryop(node, policy: Policy, multi_labelling: MultiLabelling, vulnerabilities: Vulnerabilities, while_intermediate_evals: bool, implicit_flow_multilabel: MultiLabel | None) -> MultiLabel | None:
     return analyse_node(node["argument"], policy, multi_labelling, vulnerabilities, False, implicit_flow_multilabel)
+
+
 def boolop(node, policy: Policy, multi_labelling: MultiLabelling, vulnerabilities: Vulnerabilities, while_intermediate_evals: bool, implicit_flow_multilabel: MultiLabel | None) -> MultiLabel | None:
     final_label = MultiLabel(policy.patterns)
     for arg in node["values"]:
         final_label = combineMultiLabels(final_label, analyse_node(arg, policy, multi_labelling, vulnerabilities, False, implicit_flow_multilabel))
     return final_label
+
+
 def name(node, policy: Policy, multi_labelling: MultiLabelling, vulnerabilities: Vulnerabilities, while_intermediate_evals: bool, implicit_flow_multilabel: MultiLabel | None) -> MultiLabel | None:
     varname = _get_name(node)
     name_multilabel = multi_labelling.get_multilabel_for_name(varname)
@@ -81,6 +93,8 @@ def name(node, policy: Policy, multi_labelling: MultiLabelling, vulnerabilities:
     for pattern_name in policy.get_sources_for_name(varname):
         final_multilabel.add_source(pattern_name, varname, node["loc"]["start"]["line"])
     return final_multilabel
+
+
 def attribute(node, policy: Policy, multi_labelling: MultiLabelling, vulnerabilities: Vulnerabilities, while_intermediate_evals: bool, implicit_flow_multilabel: MultiLabel | None) -> MultiLabel | None:
     attribute_complete_name = _get_name(node)
     final_multilabel = multi_labelling.get_multilabel_for_name(attribute_complete_name)
@@ -94,20 +108,30 @@ def attribute(node, policy: Policy, multi_labelling: MultiLabelling, vulnerabili
         for pattern_name in policy.get_sources_for_name(name):
             final_multilabel.add_source(pattern_name, name, node["loc"]["start"]["line"])
     return final_multilabel
+
+
 def handle_if(node, policy: Policy, multi_labelling: MultiLabelling, vulnerabilities: Vulnerabilities, while_intermediate_evals: bool, implicit_flow_multilabel: MultiLabel | None) -> None:
     test_node_multilabel = analyse_node(node["test"], policy, multi_labelling, vulnerabilities, False, implicit_flow_multilabel)
     if test_node_multilabel:
         test_node_multilabel.convert_implicit()
         if implicit_flow_multilabel:
             test_node_multilabel = combineMultiLabels(test_node_multilabel, implicit_flow_multilabel)
+    
     true_labels = multi_labelling.deep_copy()
     false_labels = multi_labelling.deep_copy()
+    
+    # When the {test} is True
     for true_node in node["consequent"]["body"]:
         analyse_node(true_node, policy, true_labels, vulnerabilities, False, test_node_multilabel)
-    for false_node in node["alternate"]["body"]:
-        analyse_node(false_node, policy, false_labels, vulnerabilities, False, test_node_multilabel)
+    
+    # When the {test} is False
+    if node.get("alternate") and node["alternate"].get("body"):
+        for false_node in node["alternate"]["body"]:
+            analyse_node(false_node, policy, false_labels, vulnerabilities, False, test_node_multilabel)
+    
     true_labels.combine(false_labels, are_both_branches=True)
     multi_labelling.combine(true_labels)
+    
     if test_node_multilabel:
         for varname in multi_labelling.defined_names:
             if varname in multi_labelling.labels:
@@ -115,26 +139,8 @@ def handle_if(node, policy: Policy, multi_labelling: MultiLabelling, vulnerabili
             else:
                 multi_labelling.update_multilabel_for_name(varname, test_node_multilabel)
 
-# def handle_while(node, policy: Policy, multi_labelling: MultiLabelling, vulnerabilities: Vulnerabilities, while_intermediate_evals: bool, implicit_flow_multilabel: MultiLabel | None) -> MultiLabelling:
-#     test_node_multilabel = analyse_node(node["test"], policy, multi_labelling, vulnerabilities, False, implicit_flow_multilabel)
-#     if test_node_multilabel:
-#         test_node_multilabel.convert_implicit()
-#         if implicit_flow_multilabel:
-#             test_node_multilabel = combineMultiLabels(test_node_multilabel, implicit_flow_multilabel)
-#     while_multilabelling = multi_labelling.deep_copy()
-#     another_clone = multi_labelling.deep_copy()
-#     for while_node in node["body"]:
-#         analyse_node(while_node, policy, while_multilabelling, vulnerabilities, True, test_node_multilabel)
-#     for while_node in reversed(node["body"]):
-#         analyse_node(while_node, policy, while_multilabelling, vulnerabilities, False, test_node_multilabel)
-#     another_clone.combine(while_multilabelling)
-#     multi_labelling.swap(another_clone)
-#     if test_node_multilabel:
-#         for varname in multi_labelling.defined_names:
-#             if varname in multi_labelling.labels:
-#                 multi_labelling.update_multilabel_for_name(varname, combineMultiLabels(multi_labelling.labels[varname], test_node_multilabel))
-#             else:
-#                 multi_labelling.update_multilabel_for_name(varname, test_node_multilabel)
+    return None
+
 
 def handle_while(node, policy: Policy, multi_labelling: MultiLabelling, vulnerabilities: Vulnerabilities, while_intermediate_evals: bool, implicit_flow_multilabel: MultiLabel | None) -> MultiLabelling:
     test_node_multilabel = analyse_node(node['test'], policy, multi_labelling, vulnerabilities, while_intermediate_evals=False, implicit_flow_multilabel=implicit_flow_multilabel)
@@ -172,14 +178,18 @@ def handle_while(node, policy: Policy, multi_labelling: MultiLabelling, vulnerab
 
     return multi_labelling
 
+
 def module(node, policy: Policy, multi_labelling: MultiLabelling, vulnerabilities: Vulnerabilities, while_intermediate_evals: bool, implicit_flow_multilabel: MultiLabel | None) -> MultiLabel | None:
     final_label = MultiLabel(policy.patterns)
     for child_node in node["body"]:
         result = analyse_node(child_node, policy, multi_labelling, vulnerabilities, False, implicit_flow_multilabel)
         final_label = combineMultiLabels(final_label, result)
     return final_label
+
+
 def expr(node, policy, multi_labelling, vulnerabilities, while_intermediate_evals, implicit_flow_multilabel):
     return analyse_node(node["expression"], policy, multi_labelling, vulnerabilities, False, implicit_flow_multilabel)
+
 
 def analyse_node(node, policy, multi_labelling, vulnerabilities, while_intermediate_evals, implicit_flow_multilabel):
     match node["type"]:
@@ -200,3 +210,26 @@ def analyse_node(node, policy, multi_labelling, vulnerabilities, while_intermedi
             handle_while(node, policy, multi_labelling, vulnerabilities, while_intermediate_evals, implicit_flow_multilabel)
             return None
     return None
+
+
+
+# def handle_while(node, policy: Policy, multi_labelling: MultiLabelling, vulnerabilities: Vulnerabilities, while_intermediate_evals: bool, implicit_flow_multilabel: MultiLabel | None) -> MultiLabelling:
+#     test_node_multilabel = analyse_node(node["test"], policy, multi_labelling, vulnerabilities, False, implicit_flow_multilabel)
+#     if test_node_multilabel:
+#         test_node_multilabel.convert_implicit()
+#         if implicit_flow_multilabel:
+#             test_node_multilabel = combineMultiLabels(test_node_multilabel, implicit_flow_multilabel)
+#     while_multilabelling = multi_labelling.deep_copy()
+#     another_clone = multi_labelling.deep_copy()
+#     for while_node in node["body"]:
+#         analyse_node(while_node, policy, while_multilabelling, vulnerabilities, True, test_node_multilabel)
+#     for while_node in reversed(node["body"]):
+#         analyse_node(while_node, policy, while_multilabelling, vulnerabilities, False, test_node_multilabel)
+#     another_clone.combine(while_multilabelling)
+#     multi_labelling.swap(another_clone)
+#     if test_node_multilabel:
+#         for varname in multi_labelling.defined_names:
+#             if varname in multi_labelling.labels:
+#                 multi_labelling.update_multilabel_for_name(varname, combineMultiLabels(multi_labelling.labels[varname], test_node_multilabel))
+#             else:
+#                 multi_labelling.update_multilabel_for_name(varname, test_node_multilabel)
