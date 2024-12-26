@@ -32,7 +32,7 @@ class MultiLabel:
 
     def add_label(self, pattern_name: str, label: Label):
         self.labels[pattern_name] = label
-    
+
     def update_label(self, pattern: str, label: Label, if_implicit: bool = False):
         if if_implicit:
             if self.patterns[pattern].implicit:
