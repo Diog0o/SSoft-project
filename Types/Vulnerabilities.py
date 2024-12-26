@@ -22,35 +22,41 @@ class Vulnerabilities:
 
     def save_vulnerabilities(self, sink_name: str, sink_line_number: int, multilabel: MultiLabel, policy: Policy):
         for pattern_name, label in multilabel.labels.items():
+            pattern = policy.get_pattern_by_name(pattern_name)
             for sink in sink_name.split('.'):
-                if not policy.get_pattern_by_name(pattern_name).is_sink(sink):
+                if not pattern.is_sink(sink):
                     continue
                 for src in label.get_sources():
                     vulnerability_name = f"{pattern_name}_{self.get_next_vuln_index(pattern_name)}"
 
                     _sanitizers = label.get_source_sanitizers(src[0], src[1])
-                    are_there_unsanitized_flows = "yes" if len(_sanitizers) == 0 or any(len(s) == 0 for s in _sanitizers) else "no"
+                    
+                    # Update unsanitized_flows logic for implicit flows
+                    has_unsanitized = len(_sanitizers) == 0 or any(len(s) == 0 for s in _sanitizers)
+                    is_implicit = label.is_implicit() and pattern.implicit
+                    are_there_unsanitized_flows = "yes" if (has_unsanitized or is_implicit) else "no"
 
                     var_line_number = src[1]
                     if var_line_number == -1:
-                        # The source is undefined
                         src = (src[0], sink_line_number)
 
-                    # implicit_flow = "yes" if label.is_implicit() else "no"
-                    implicit_flow = "no"
+                    # Deduplicate sanitized flows
+                    unique_sanitizer_flows = []
+                    for flow in _sanitizers:
+                        if len(flow) > 0 and list(flow) not in [list(f) for f in unique_sanitizer_flows]:
+                            unique_sanitizer_flows.append(flow)
 
-                    # Create a vulnerability instance
                     new_vuln = _Vulnerability(
                         vulnerability_name,
                         src,
                         (sink, sink_line_number),
                         are_there_unsanitized_flows,
-                        [list(s) for s in _sanitizers if len(s) > 0],
-                        implicit_flow
+                        [list(s) for s in unique_sanitizer_flows],
+                        "yes" if is_implicit else "no"
                     )
 
+                    # Only add if unique vulnerability
                     if not self._vulnerability_exists(new_vuln):
-                        print("SAVE", pattern_name, src, sink_name, sink, _sanitizers)
                         self.vulns.append(new_vuln)
 
     def write_to_file(self, path: str):

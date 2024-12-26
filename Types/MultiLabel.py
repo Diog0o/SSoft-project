@@ -37,6 +37,7 @@ class MultiLabel:
         if if_implicit:
             if self.patterns[pattern].implicit:
                 self.labels[pattern] = label
+                self.labels[pattern].set_implicit(True)
         else:
             self.labels[pattern] = label
 
@@ -57,6 +58,9 @@ class MultiLabel:
             if not self.patterns[pattern_name].implicit:
                 # Reset Labels for {patterns} that don't want to include implicit flows
                 self.labels[pattern_name] = Label()
+            else:
+                # Mark existing labels as implicit for patterns that support it
+                label.set_implicit(True)
 
     def get_sources(self, pattern_name):
         if pattern_name in self.labels:

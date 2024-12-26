@@ -1,13 +1,8 @@
-Expression:
-  Literal
-  Identifier
-  UnaryExpression
-  BinaryExpression
-  CallExpression
-  MemberExpression (.)
-  AssignmentExpression
-Statement:
-  BlockStatement
-  ExpressionStatement
-  IfStatement
-  WhileStatement
+Mal: Quando a sink é a mesma falta sempre uma vulnerability (ate agr)
+2
+3c
+4b
+
+
+
+

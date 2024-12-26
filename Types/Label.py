@@ -15,8 +15,15 @@ class Label:
         In the end, there is no way to know which sources were neutralized by which sanitizers,
         only the sanitizers that were applied to the variable along the information flow 
     '''
-    def __init__(self, sources_w_sanitizers: dict[tuple[str, int], list[set[tuple[str, int]]]] = { }):
+    def __init__(self, sources_w_sanitizers: dict[tuple[str, int], list[set[tuple[str, int]]]] = {}, is_implicit: bool = False):
         self._sources_w_sanitizers = copy.deepcopy(sources_w_sanitizers)
+        self._is_implicit = is_implicit
+
+    def set_implicit(self, implicit: bool):
+        self._is_implicit = implicit
+
+    def is_implicit(self) -> bool:
+        return self._is_implicit
 
     def add_source(self, source):
         # If source already exists resets its sanitization paths
@@ -47,6 +54,7 @@ class Label:
 
     def deep_copy(self):
         clonedLabel = Label()
+        clonedLabel._is_implicit = self._is_implicit  # Copy implicit flag
         for source, original_sanitization_flows in self._sources_w_sanitizers.items():
             sanitization_flows: list[set[tuple[str, int]]] = list()
             for original_sanitization_flow in original_sanitization_flows:
@@ -62,22 +70,17 @@ class Label:
         
         for source in list(self.get_sources_and_sanitizers()) + list(other_label.get_sources_and_sanitizers()):
             if source in self.get_sources_and_sanitizers() and source in other_label.get_sources_and_sanitizers():
-                '''
-                self => { ("a", 1): [ [("san1", 1), ("san2", 2)], [("san3", 2)], [] ] }
-                other => { ("a", 1): [ [("san3", 2)], [] ] }
-                combined => { ("a", 1): [ [("san1", 1), ("san2", 2)], [("san3", 2)], [], [("san3", 2)], [] ] }
-                    just merge lists, removing duplicates
-                '''
                 mergedSourcesAndSanitizers[source] = self.get_source_sanitizers(source[0], source[1]) + other_label.get_source_sanitizers(source[0], source[1])
                 # Remove duplicates
                 for san_path in mergedSourcesAndSanitizers[source]:
                     if mergedSourcesAndSanitizers[source].count(san_path) > 1:
                         mergedSourcesAndSanitizers[source].remove(san_path)
             elif source in self.get_sources_and_sanitizers():
-                # not in {other}
                 mergedSourcesAndSanitizers[source] = self.get_source_sanitizers(source[0], source[1])
             elif source in other_label.get_sources_and_sanitizers():
-                # not in {self}
                 mergedSourcesAndSanitizers[source] = other_label.get_source_sanitizers(source[0], source[1])
 
-        return Label(mergedSourcesAndSanitizers)
+        combined_label = Label(mergedSourcesAndSanitizers)
+        # Set implicit if either label is implicit
+        combined_label.set_implicit(self.is_implicit() or other_label.is_implicit())
+        return combined_label

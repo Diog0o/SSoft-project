@@ -112,10 +112,16 @@ def attribute(node, policy: Policy, multi_labelling: MultiLabelling, vulnerabili
 
 def handle_if(node, policy: Policy, multi_labelling: MultiLabelling, vulnerabilities: Vulnerabilities, while_intermediate_evals: bool, implicit_flow_multilabel: MultiLabel | None) -> None:
     test_node_multilabel = analyse_node(node["test"], policy, multi_labelling, vulnerabilities, False, implicit_flow_multilabel)
+    
     if test_node_multilabel:
+        # Mark all labels from test condition as implicit for patterns that support it
+        for pattern_name, label in test_node_multilabel.labels.items():
+            if policy.get_pattern_by_name(pattern_name).implicit:
+                label.set_implicit(True)
+        
         test_node_multilabel.convert_implicit()
         if implicit_flow_multilabel:
-            test_node_multilabel = combineMultiLabels(test_node_multilabel, implicit_flow_multilabel)
+            test_node_multilabel = test_node_multilabel.combine(implicit_flow_multilabel)
     
     true_labels = multi_labelling.deep_copy()
     false_labels = multi_labelling.deep_copy()
@@ -144,37 +150,48 @@ def handle_if(node, policy: Policy, multi_labelling: MultiLabelling, vulnerabili
 
 def handle_while(node, policy: Policy, multi_labelling: MultiLabelling, vulnerabilities: Vulnerabilities, while_intermediate_evals: bool, implicit_flow_multilabel: MultiLabel | None) -> MultiLabelling:
     test_node_multilabel = analyse_node(node['test'], policy, multi_labelling, vulnerabilities, while_intermediate_evals=False, implicit_flow_multilabel=implicit_flow_multilabel)
-
+    
     if test_node_multilabel:
-        print("here1")
+        # Mark all labels from test condition as implicit for patterns that support it
+        for pattern_name, label in test_node_multilabel.labels.items():
+            if policy.get_pattern_by_name(pattern_name).implicit:
+                label.set_implicit(True)
+        
         test_node_multilabel.convert_implicit()
         if implicit_flow_multilabel:
-            print("here2")
             test_node_multilabel = test_node_multilabel.combine(implicit_flow_multilabel)
 
     while_multilabelling = multi_labelling.deep_copy()
     another_clone = multi_labelling.deep_copy()
 
-    # First Iteration should ignore sinks
-    for while_node in node['body']['body']:  # Fixed: Accessing the list of statements inside the block
-        print("type of while node:")
-        print(type(while_node), while_node)
-        analyse_node(while_node, policy, while_multilabelling, vulnerabilities, while_intermediate_evals=True, implicit_flow_multilabel=implicit_flow_multilabel)
+    # First Iteration should ignore sinks but propagate implicit flows
+    for while_node in node['body']['body']:
+        analyse_node(while_node, policy, while_multilabelling, vulnerabilities, 
+                    while_intermediate_evals=True, 
+                    implicit_flow_multilabel=test_node_multilabel)
 
-    # Reversed iteration considers sinks (avoids duplicate vulns)
-    for while_node in reversed(node['body']['body']):  # Same fix for reversed iteration
-        analyse_node(while_node, policy, while_multilabelling, vulnerabilities, while_intermediate_evals=False, implicit_flow_multilabel=test_node_multilabel)
+    # Reversed iteration considers sinks and implicit flows
+    for while_node in reversed(node['body']['body']):
+        analyse_node(while_node, policy, while_multilabelling, vulnerabilities, 
+                    while_intermediate_evals=False, 
+                    implicit_flow_multilabel=test_node_multilabel)
 
-    # Combine with original because the while block is optional (does not execute if the {test} is false)
+    # Combine with original because the while block is optional
     another_clone.combine(while_multilabelling)
     multi_labelling.swap(another_clone)
 
+    # Propagate implicit flows to all defined variables
     if test_node_multilabel is not None:
         for varname in multi_labelling.defined_names:
             if varname in multi_labelling.labels:
-                multi_labelling.update_multilabel_for_name(varname, multi_labelling.labels[varname].combine(test_node_multilabel))
+                combined_label = multi_labelling.labels[varname].combine(test_node_multilabel)
+                # Ensure implicit status is preserved after combination
+                for pattern_name, label in combined_label.labels.items():
+                    if policy.get_pattern_by_name(pattern_name).implicit:
+                        label.set_implicit(True)
+                multi_labelling.update_multilabel_for_name(varname, combined_label)
             else:
-                multi_labelling.update_multilabel_for_name(varname, test_node_multilabel)  
+                multi_labelling.update_multilabel_for_name(varname, test_node_multilabel)
 
     return multi_labelling
 

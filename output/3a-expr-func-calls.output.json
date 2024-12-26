@@ -17,7 +17,8 @@
           2
         ]
       ]
-    ]
+    ],
+    "implicit": "no"
   },
   {
     "vulnerability": "A_2",
@@ -37,7 +38,8 @@
           2
         ]
       ]
-    ]
+    ],
+    "implicit": "no"
   },
   {
     "vulnerability": "B_1",
@@ -53,11 +55,11 @@
     "sanitized_flows": [
       [
         [
-          "e",
+          "d",
           2
         ],
         [
-          "d",
+          "e",
           2
         ]
       ],
@@ -67,7 +69,8 @@
           2
         ]
       ]
-    ]
+    ],
+    "implicit": "no"
   },
   {
     "vulnerability": "A_3",
@@ -87,6 +90,7 @@
           2
         ]
       ]
-    ]
+    ],
+    "implicit": "no"
   }
 ]

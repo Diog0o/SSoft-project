@@ -10,7 +10,8 @@
       7
     ],
     "unsanitized_flows": "yes",
-    "sanitized_flows": []
+    "sanitized_flows": [],
+    "implicit": "no"
   },
   {
     "vulnerability": "A_1",
@@ -23,7 +24,8 @@
       10
     ],
     "unsanitized_flows": "yes",
-    "sanitized_flows": []
+    "sanitized_flows": [],
+    "implicit": "no"
   },
   {
     "vulnerability": "A_2",
@@ -36,24 +38,12 @@
       10
     ],
     "unsanitized_flows": "yes",
-    "sanitized_flows": []
+    "sanitized_flows": [],
+    "implicit": "no"
   },
   {
     "vulnerability": "A_3",
     "source": [
-      "a",
-      10
-    ],
-    "sink": [
-      "e",
-      10
-    ],
-    "unsanitized_flows": "yes",
-    "sanitized_flows": []
-  },
-  {
-    "vulnerability": "A_4",
-    "source": [
       "c",
       10
     ],
@@ -62,49 +52,11 @@
       10
     ],
     "unsanitized_flows": "yes",
-    "sanitized_flows": []
-  },
-  {
-    "vulnerability": "A_5",
-    "source": [
-      "c",
-      10
-    ],
-    "sink": [
-      "e",
-      10
-    ],
-    "unsanitized_flows": "yes",
-    "sanitized_flows": []
+    "sanitized_flows": [],
+    "implicit": "no"
   },
   {
     "vulnerability": "B_2",
-    "source": [
-      "a",
-      10
-    ],
-    "sink": [
-      "e",
-      10
-    ],
-    "unsanitized_flows": "yes",
-    "sanitized_flows": []
-  },
-  {
-    "vulnerability": "B_3",
-    "source": [
-      "a",
-      10
-    ],
-    "sink": [
-      "e",
-      10
-    ],
-    "unsanitized_flows": "yes",
-    "sanitized_flows": []
-  },
-  {
-    "vulnerability": "B_4",
     "source": [
       "d",
       7
@@ -114,32 +66,7 @@
       10
     ],
     "unsanitized_flows": "yes",
-    "sanitized_flows": []
-  },
-  {
-    "vulnerability": "B_5",
-    "source": [
-      "c",
-      10
-    ],
-    "sink": [
-      "e",
-      10
-    ],
-    "unsanitized_flows": "yes",
-    "sanitized_flows": []
-  },
-  {
-    "vulnerability": "B_6",
-    "source": [
-      "c",
-      10
-    ],
-    "sink": [
-      "e",
-      10
-    ],
-    "unsanitized_flows": "yes",
-    "sanitized_flows": []
+    "sanitized_flows": [],
+    "implicit": "no"
   }
 ]
