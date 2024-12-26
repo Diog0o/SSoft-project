@@ -35,7 +35,7 @@ class Policy:
         for pattern_name in multilabel.labels.keys():
             pattern: Pattern | None = self.get_pattern_by_name(pattern_name)
             if not pattern: continue
-
+        
             pattern_label: Label = multilabel.labels[pattern_name]
             # Ex: sink_name = a.b
             for sink in sink_name.split("."):

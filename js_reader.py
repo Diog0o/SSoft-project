@@ -26,6 +26,7 @@ def assignment(node, policy: Policy, multi_labelling: MultiLabelling, vulnerabil
         return None
     if not is_aug:
         final_multilabel = value
+        
     else:
         final_multilabel = combineMultiLabels(multi_labelling.get_multilabel_for_name(varname), value)
         assert final_multilabel is not None

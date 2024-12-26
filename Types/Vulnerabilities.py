@@ -28,7 +28,7 @@ class Vulnerabilities:
                     continue
                 for src in label.get_sources():
                     vulnerability_name = f"{pattern_name}_{self.get_next_vuln_index(pattern_name)}"
-
+                    
                     _sanitizers = label.get_source_sanitizers(src[0], src[1])
                     
                     # Update unsanitized_flows logic for implicit flows
@@ -81,13 +81,27 @@ class Vulnerabilities:
         max_number = max(numbers, default=0)
         return max_number + 1
     
+    # def _vulnerability_exists(self, new_vuln: _Vulnerability) -> bool:
+    #     for vuln in self.vulns:
+    #         if (vuln.source == new_vuln.source and
+    #             vuln.sink == new_vuln.sink and
+    #             vuln.unsanitized_flows == new_vuln.unsanitized_flows and
+    #             vuln.sanitized_flows == new_vuln.sanitized_flows and
+    #             vuln.implicit == new_vuln.implicit
+    #             ):
+    #             return True
+    #     return False
     def _vulnerability_exists(self, new_vuln: _Vulnerability) -> bool:
+        new_vuln_pattern = new_vuln.vulnerability.split('_')[0]  # Extract the pattern name
         for vuln in self.vulns:
+            existing_pattern = vuln.vulnerability.split('_')[0]  # Extract the pattern name for comparison
             if (vuln.source == new_vuln.source and
                 vuln.sink == new_vuln.sink and
                 vuln.unsanitized_flows == new_vuln.unsanitized_flows and
                 vuln.sanitized_flows == new_vuln.sanitized_flows and
-                vuln.implicit == new_vuln.implicit
+                vuln.implicit == new_vuln.implicit and
+                existing_pattern == new_vuln_pattern  # Check if patterns are the same
                 ):
                 return True
         return False
+
