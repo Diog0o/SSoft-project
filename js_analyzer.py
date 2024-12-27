@@ -1,7 +1,7 @@
 import json
 import os
 import sys
-import esprima  # Esprima for JavaScript parsing
+import esprima
 from Types.MultiLabelling import MultiLabelling
 from Types.Vulnerabilities import Vulnerabilities
 from js_reader import analyse_node
@@ -18,7 +18,6 @@ def parse_js_file(filepath: str) -> dict:
         with open(filepath, "r") as file:
             js_code = file.read().strip()
             ast = esprima.parseScript(js_code, loc=True, comment=True)
-        # Save AST to a JSON file for inspection
         with open("parsed_ast.json", "w") as debug_file:
             json.dump(ast.toDict(), debug_file, indent=2)
         return ast.toDict()

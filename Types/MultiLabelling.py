@@ -1,4 +1,3 @@
-import copy
 from Types.MultiLabel import MultiLabel
 
 

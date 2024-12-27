@@ -1,4 +1,3 @@
-import copy
 from Types.Label import Label
 from Types.Pattern import Pattern
 
