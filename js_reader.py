@@ -22,17 +22,17 @@ def assignment(node, policy: Policy, multi_labelling: MultiLabelling, vulnerabil
     varname = _get_name(node["left"])
     
     if value is None:
-        multi_labelling.add_defined_name(varname)
+        multi_labelling.add_defined_variable(varname)
         return None
     if not is_aug:
         final_multilabel = value
         
     else:
-        final_multilabel = combineMultiLabels(multi_labelling.get_multilabel_for_name(varname), value)
+        final_multilabel = combineMultiLabels(multi_labelling.get_multilabel_for_variable(varname), value)
         assert final_multilabel is not None
     if implicit_flow_multilabel:
         final_multilabel.combine(implicit_flow_multilabel)
-    multi_labelling.update_multilabel_for_name(varname, final_multilabel)
+    multi_labelling.update_multilabel_for_variable(varname, final_multilabel)
     if not while_intermediate_evals and final_multilabel is not None:
         illegal_flows = policy.determine_illegal_flows(varname, final_multilabel)
         if illegal_flows:
@@ -51,18 +51,18 @@ def function_call(node, policy: Policy, multi_labelling: MultiLabelling, vulnera
 
     # Process implicit flow multilabel if it exists
     if implicit_flow_multilabel:
-        for pattern in policy.get_sanitizers_for_name(function_name):
+        for pattern in policy.get_sanitizers_by_name(function_name):
             implicit_flow_multilabel.add_sanitizer(pattern, function_name, node["loc"]["start"]["line"])
         final_multilabel = combineMultiLabels(final_multilabel, implicit_flow_multilabel)
 
     # Check if the function or its parent modules are sources
     for name in function_complete_name.split("."):
-        for pattern_name in policy.get_sources_for_name(name):
+        for pattern_name in policy.get_sources_by_name(name):
             final_multilabel.add_source(pattern_name, name, node["loc"]["start"]["line"])
 
     # Check if any parent in the chain is undefined
     for name in function_complete_name.split(".")[:-1]:
-        if not multi_labelling.is_name_defined(name):
+        if not multi_labelling.is_variable_defined(name):
             for pattern in policy.patterns:
                 final_multilabel.add_source(pattern.name, name, node["loc"]["start"]["line"])
 
@@ -75,7 +75,7 @@ def function_call(node, policy: Policy, multi_labelling: MultiLabelling, vulnera
         assert final_multilabel is not None
 
     # Handle sanitizers associated with this function
-    for pattern_name in policy.get_sanitizers_for_name(function_name):
+    for pattern_name in policy.get_sanitizers_by_name(function_name):
         final_multilabel.add_sanitizer(pattern_name, function_name, node["loc"]["start"]["line"])
 
     # Determine illegal flows and save vulnerabilities if not in intermediate evaluation
@@ -107,27 +107,27 @@ def boolop(node, policy: Policy, multi_labelling: MultiLabelling, vulnerabilitie
 
 def name(node, policy: Policy, multi_labelling: MultiLabelling, vulnerabilities: Vulnerabilities, while_intermediate_evals: bool, implicit_flow_multilabel: MultiLabel | None) -> MultiLabel | None:
     varname = _get_name(node)
-    name_multilabel = multi_labelling.get_multilabel_for_name(varname)
+    name_multilabel = multi_labelling.get_multilabel_for_variable(varname)
     final_multilabel = name_multilabel if name_multilabel else MultiLabel(policy.patterns)
-    if not multi_labelling.is_name_defined(varname):
+    if not multi_labelling.is_variable_defined(varname):
         final_multilabel.add_source_to_all(varname, node["loc"]["start"]["line"])
     
-    for pattern_name in policy.get_sources_for_name(varname):
+    for pattern_name in policy.get_sources_by_name(varname):
         final_multilabel.add_source(pattern_name, varname, node["loc"]["start"]["line"])
     return final_multilabel
 
 
 def attribute(node, policy: Policy, multi_labelling: MultiLabelling, vulnerabilities: Vulnerabilities, while_intermediate_evals: bool, implicit_flow_multilabel: MultiLabel | None) -> MultiLabel | None:
     attribute_complete_name = _get_name(node)
-    final_multilabel = multi_labelling.get_multilabel_for_name(attribute_complete_name)
+    final_multilabel = multi_labelling.get_multilabel_for_variable(attribute_complete_name)
     if not final_multilabel:
         final_multilabel = MultiLabel(policy.patterns)
     for name in attribute_complete_name.split("."):
-        if not multi_labelling.is_name_defined(name):
+        if not multi_labelling.is_variable_defined(name):
             final_multilabel.add_source_to_all(name, node["loc"]["start"]["line"])
             break
     for name in attribute_complete_name.split("."):
-        for pattern_name in policy.get_sources_for_name(name):
+        for pattern_name in policy.get_sources_by_name(name):
             final_multilabel.add_source(pattern_name, name, node["loc"]["start"]["line"])
     return final_multilabel
 
@@ -161,11 +161,11 @@ def handle_if(node, policy: Policy, multi_labelling: MultiLabelling, vulnerabili
     multi_labelling.combine(true_labels)
     
     if test_node_multilabel:
-        for varname in multi_labelling.defined_names:
+        for varname in multi_labelling.defined_variables:
             if varname in multi_labelling.labels:
-                multi_labelling.update_multilabel_for_name(varname, combineMultiLabels(multi_labelling.labels[varname], test_node_multilabel))
+                multi_labelling.update_multilabel_for_variable(varname, combineMultiLabels(multi_labelling.labels[varname], test_node_multilabel))
             else:
-                multi_labelling.update_multilabel_for_name(varname, test_node_multilabel)
+                multi_labelling.update_multilabel_for_variable(varname, test_node_multilabel)
 
     return None
 
@@ -204,16 +204,16 @@ def handle_while(node, policy: Policy, multi_labelling: MultiLabelling, vulnerab
 
     # Propagate implicit flows to all defined variables
     if test_node_multilabel is not None:
-        for varname in multi_labelling.defined_names:
+        for varname in multi_labelling.defined_variables:
             if varname in multi_labelling.labels:
                 combined_label = multi_labelling.labels[varname].combine(test_node_multilabel)
                 # Ensure implicit status is preserved after combination
                 for pattern_name, label in combined_label.labels.items():
                     if policy.get_pattern_by_name(pattern_name).implicit:
                         label.set_implicit(True)
-                multi_labelling.update_multilabel_for_name(varname, combined_label)
+                multi_labelling.update_multilabel_for_variable(varname, combined_label)
             else:
-                multi_labelling.update_multilabel_for_name(varname, test_node_multilabel)
+                multi_labelling.update_multilabel_for_variable(varname, test_node_multilabel)
 
     return multi_labelling
 

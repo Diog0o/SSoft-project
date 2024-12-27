@@ -25,7 +25,7 @@ class Vulnerabilities:
                 for src in label.get_sources():
                     vulnerability_name = f"{pattern_name}_{self.get_next_vuln_index(pattern_name)}"
                     
-                    _sanitizers = label.get_source_sanitizers(src[0], src[1])
+                    _sanitizers = label.get_sanitizers_of_source(src[0], src[1])
                     
                     # Normalize sanitized flows first
                     unique_sanitizer_flows = []

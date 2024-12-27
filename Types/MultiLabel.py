@@ -7,11 +7,8 @@ class MultiLabel:
     '''
     Maps {Labels} to {Patterns}
 
-    Ex: 
-    {
-        'pattern_1': Label,
-        'pattern_2': Label,
-    }
+    labels => { "pattern1": Label, "pattern2": Label, ... }
+    patterns => { "pattern1": Pattern, "pattern2": Pattern, ... }
     '''
     def __init__(self, patterns: list[Pattern]):
         # key: pattern name
@@ -27,7 +24,7 @@ class MultiLabel:
     def print(self):
         print("-- PRINT --")
         for pattern_name, label in self.labels.items():
-            print(pattern_name, ":", label._sources_w_sanitizers)
+            print(pattern_name, ":", label._sources_sanitizers_dict)
         print("-- END PRINT --")
 
     def add_label(self, pattern_name: str, label: Label):
@@ -44,14 +41,15 @@ class MultiLabel:
     def add_source(self, pattern_name: str, source: str, line_number: int):
         self.labels[pattern_name].add_source((source, line_number))
 
+    def add_sanitizer(self, pattern_name, sanitizer: str, line_number: int):
+        if pattern_name in self.labels:
+            self.labels[pattern_name].add_sanitizer(sanitizer, line_number)
+
     # To use when an undefined {name} impacts a MultiLabel
     def add_source_to_all(self, source: str, line_number: int):
         for pattern_name in self.labels.keys():
             self.labels[pattern_name].add_source((source, line_number))
 
-    def add_sanitizer(self, pattern_name, sanitizer: str, line_number: int):
-        if pattern_name in self.labels:
-            self.labels[pattern_name].add_sanitizer(sanitizer, line_number)
 
     def convert_implicit(self):
         for pattern_name, label in self.labels.items():

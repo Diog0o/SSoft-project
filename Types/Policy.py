@@ -6,22 +6,16 @@ class Policy:
     def __init__(self, patterns: list[Pattern]):
         self.patterns = patterns
 
-    def get_all_vulnerability_names(self):
-        return [pattern.name for pattern in self.patterns]
-
-    def get_sources_for_name(self, name: str):
+    def get_sources_by_name(self, name: str):
         return [pattern.name for pattern in self.patterns if pattern.is_source(name)]
-
-    def get_sanitizers_for_name(self, name: str):
-        return [pattern.name for pattern in self.patterns if pattern.is_sanitizer(name)]
-
-    def get_sinks_for_name(self, name: str):
-        return [pattern.name for pattern in self.patterns if pattern.is_sink(name)]
-
+    
     def get_pattern_by_name(self, name: str) -> Pattern | None:
         for pattern in self.patterns:
             if pattern.name == name: return pattern
         return None
+
+    def get_sanitizers_by_name(self, name: str):
+        return [pattern.name for pattern in self.patterns if pattern.is_sanitizer(name)]
 
     def determine_illegal_flows(self, sink_name: str, multilabel: MultiLabel) -> MultiLabel | None:
         illegal_multilabel = MultiLabel(self.patterns)
