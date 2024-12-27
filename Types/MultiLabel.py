@@ -24,7 +24,7 @@ class MultiLabel:
     def print(self):
         print("-- PRINT --")
         for pattern_name, label in self.labels.items():
-            print(pattern_name, ":", label._sources_sanitizers_dict)
+            print(pattern_name, ":", label.sources_sanitizers_dict)
         print("-- END PRINT --")
 
     def add_label(self, pattern_name: str, label: Label):

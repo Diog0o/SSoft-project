@@ -4,64 +4,50 @@ import copy
 
 class Label:
     '''
-    Track the {sources} and {sanitizers} that influenced a variable
-
-    a = dang         {a} label = { (dang, 1): [] }
-    b = dang         {b} label = { (dang, 1): [] }
-    b = san(b)       {b} label = { (dang, 1): [[("san", 1)]] }
-    c = a + b        {c} label = { (dang, 1): [[("san", 1)], []] }
-    INTERSECTION
-    Drawback: 
-        In the end, there is no way to know which sources were neutralized by which sanitizers,
-        only the sanitizers that were applied to the variable along the information flow 
+    Represents a label that tracks sources and their associated sanitizers.
+    Dictionary of sources and their sanitizers:
+    sources_n_sanitizers => { ("a", 1): [ [("san1", 1), ("san2", 2)], [("san3", 2)], [] ] }
     '''
     def __init__(self, sources_w_sanitizers: dict[tuple[str, int], list[set[tuple[str, int]]]] = {}, is_implicit: bool = False):
-        self._sources_sanitizers_dict = copy.deepcopy(sources_w_sanitizers)
-        self._is_implicit = is_implicit
+        self.sources_sanitizers_dict = copy.deepcopy(sources_w_sanitizers)
+        self.is_implicit = is_implicit
 
     def set_implicit(self, implicit: bool):
-        self._is_implicit = implicit
+        self.is_implicit = implicit
 
     def is_implicit(self) -> bool:
-        return self._is_implicit
+        return self.is_implicit
     
     def add_sanitizer(self, sanitizer: str, line_number: int):
-        '''
-        Sanitizes all sources of this Label
-
-        sources_n_sanitizers => { ("a", 1): [ [("san1", 1), ("san2", 2)], [("san3", 2)], [] ] }
-        add_sanitizer("san4")
-        sources_n_sanitizers => { ("a", 1): [ [("san1", 1), ("san2", 2), ("san4", 1)], [("san3", 2), ("san4", 1)], [("san4", 1)] ] }
-        '''
         for source in self.get_sources():
-            for sanitization_paths in self._sources_sanitizers_dict[source]:
+            for sanitization_paths in self.sources_sanitizers_dict[source]:
                 sanitization_paths.add((sanitizer, line_number))
 
     def add_source(self, source):
-        self._sources_sanitizers_dict[source] = list()
-        self._sources_sanitizers_dict[source].append(set())
+        self.sources_sanitizers_dict[source] = list()
+        self.sources_sanitizers_dict[source].append(set())
 
     
     def get_sources(self):
-        return self._sources_sanitizers_dict.keys()
+        return self.sources_sanitizers_dict.keys()
     
     def get_sanitizers_of_source(self, source: str, line_number: int) -> list[set[tuple[str, int]]]:
-        return self._sources_sanitizers_dict[(source, line_number)]
+        return self.sources_sanitizers_dict[(source, line_number)]
     
     def get_sources_and_sanitizers(self):
-        return self._sources_sanitizers_dict
+        return self.sources_sanitizers_dict
 
     def deep_copy(self):
         clonedLabel = Label()
-        clonedLabel._is_implicit = self._is_implicit
-        for source, original_sanitization_flows in self._sources_sanitizers_dict.items():
+        clonedLabel.is_implicit = self.is_implicit
+        for source, original_sanitization_flows in self.sources_sanitizers_dict.items():
             sanitization_flows: list[set[tuple[str, int]]] = list()
             for original_sanitization_flow in original_sanitization_flows:
                 sanitization_flow: set[tuple[str, int]] = set()
                 for original_sanitizer in original_sanitization_flow:
                     sanitization_flow.add((original_sanitizer[0], original_sanitizer[1]))
                 sanitization_flows.append(sanitization_flow)
-            clonedLabel._sources_sanitizers_dict[source] = sanitization_flows
+            clonedLabel.sources_sanitizers_dict[source] = sanitization_flows
         return clonedLabel
 
     def combine(self, other_label: "Label") -> "Label":
