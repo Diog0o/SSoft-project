@@ -11,12 +11,8 @@ class _Vulnerability:
     unsanitized_flows: str
     sanitized_flows: list[list[tuple[str, int]]]
     implicit: str
-    
 
 class Vulnerabilities:
-    '''
-    Vulnerability[]
-    '''
     def __init__(self):
         self.vulns: list[_Vulnerability] = []    
 
@@ -31,33 +27,59 @@ class Vulnerabilities:
                     
                     _sanitizers = label.get_source_sanitizers(src[0], src[1])
                     
-                    # Update unsanitized_flows logic for implicit flows
-                    has_unsanitized = len(_sanitizers) == 0 or any(len(s) == 0 for s in _sanitizers)
+                    # Normalize sanitized flows first
+                    unique_sanitizer_flows = []
+                    for flow in _sanitizers:
+                        if len(flow) > 0:  # Only include non-empty flows
+                            sorted_flow = sorted(list(flow), key=lambda x: (x[1], x[0]))
+                            if sorted_flow not in unique_sanitizer_flows:
+                                unique_sanitizer_flows.append(sorted_flow)
+                    
+                    # Sort the flows themselves
+                    unique_sanitizer_flows.sort(key=lambda x: tuple((san[1], san[0]) for san in x))
+                    
+                    # Determine if there are unsanitized flows
                     is_implicit = label.is_implicit() and pattern.implicit
-                    are_there_unsanitized_flows = "yes" if (has_unsanitized or is_implicit) else "no"
+                    has_unsanitized = len(_sanitizers) == 0 or any(len(s) == 0 for s in _sanitizers)
+                    
+                    # For implicit flows, if there's at least one sanitizer, it's considered sanitized
+                    if is_implicit and unique_sanitizer_flows:
+                        are_there_unsanitized_flows = "no"
+                    else:
+                        are_there_unsanitized_flows = "yes" if has_unsanitized else "no"
 
                     var_line_number = src[1]
                     if var_line_number == -1:
                         src = (src[0], sink_line_number)
-
-                    # Deduplicate sanitized flows
-                    unique_sanitizer_flows = []
-                    for flow in _sanitizers:
-                        if len(flow) > 0 and list(flow) not in [list(f) for f in unique_sanitizer_flows]:
-                            unique_sanitizer_flows.append(flow)
 
                     new_vuln = _Vulnerability(
                         vulnerability_name,
                         src,
                         (sink, sink_line_number),
                         are_there_unsanitized_flows,
-                        [list(s) for s in unique_sanitizer_flows],
+                        unique_sanitizer_flows,
                         "yes" if is_implicit else "no"
                     )
 
-                    # Only add if unique vulnerability
                     if not self._vulnerability_exists(new_vuln):
                         self.vulns.append(new_vuln)
+
+    def _vulnerability_exists(self, new_vuln: _Vulnerability) -> bool:
+        # Extract pattern name (e.g., "A" from "A_1")
+        new_pattern = new_vuln.vulnerability.split('_')[0]
+        
+        for vuln in self.vulns:
+            existing_pattern = vuln.vulnerability.split('_')[0]
+            
+            # Compare all fields except vulnerability name
+            if (vuln.source == new_vuln.source and
+                vuln.sink == new_vuln.sink and
+                vuln.unsanitized_flows == new_vuln.unsanitized_flows and
+                sorted([tuple(flow) for flow in vuln.sanitized_flows]) == sorted([tuple(flow) for flow in new_vuln.sanitized_flows]) and
+                vuln.implicit == new_vuln.implicit and
+                existing_pattern == new_pattern):  # Check if patterns match
+                return True
+        return False
 
     def write_to_file(self, path: str):
         output = []
@@ -80,28 +102,3 @@ class Vulnerabilities:
         numbers = [int(element.split('_')[1]) for element in filtered_elements]
         max_number = max(numbers, default=0)
         return max_number + 1
-    
-    # def _vulnerability_exists(self, new_vuln: _Vulnerability) -> bool:
-    #     for vuln in self.vulns:
-    #         if (vuln.source == new_vuln.source and
-    #             vuln.sink == new_vuln.sink and
-    #             vuln.unsanitized_flows == new_vuln.unsanitized_flows and
-    #             vuln.sanitized_flows == new_vuln.sanitized_flows and
-    #             vuln.implicit == new_vuln.implicit
-    #             ):
-    #             return True
-    #     return False
-    def _vulnerability_exists(self, new_vuln: _Vulnerability) -> bool:
-        new_vuln_pattern = new_vuln.vulnerability.split('_')[0]  # Extract the pattern name
-        for vuln in self.vulns:
-            existing_pattern = vuln.vulnerability.split('_')[0]  # Extract the pattern name for comparison
-            if (vuln.source == new_vuln.source and
-                vuln.sink == new_vuln.sink and
-                vuln.unsanitized_flows == new_vuln.unsanitized_flows and
-                vuln.sanitized_flows == new_vuln.sanitized_flows and
-                vuln.implicit == new_vuln.implicit and
-                existing_pattern == new_vuln_pattern  # Check if patterns are the same
-                ):
-                return True
-        return False
-

@@ -11,8 +11,8 @@
             "request": "launch",
             "program": "${workspaceFolder}/js_analyzer.py",
             "args": [
-                "/Users/diogoguerreiro/Desktop/MEIC/1 ano/P2/SSoft/projeto/slices/3-expr/3c-expr-attributes.js",
-                "/Users/diogoguerreiro/Desktop/MEIC/1 ano/P2/SSoft/projeto/slices/3-expr/3c-expr-attributes.patterns.json"
+                "/Users/diogoguerreiro/Desktop/MEIC/1 ano/P2/SSoft/projeto/slices/9-regions-guards/9-regions-guards.js",
+                "/Users/diogoguerreiro/Desktop/MEIC/1 ano/P2/SSoft/projeto/slices/9-regions-guards/9-regions-guards.patterns.json"
             ],
             "console": "integratedTerminal"
         }

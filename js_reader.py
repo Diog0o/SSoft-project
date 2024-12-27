@@ -250,25 +250,3 @@ def analyse_node(node, policy, multi_labelling, vulnerabilities, while_intermedi
             return None
     return None
 
-
-
-# def handle_while(node, policy: Policy, multi_labelling: MultiLabelling, vulnerabilities: Vulnerabilities, while_intermediate_evals: bool, implicit_flow_multilabel: MultiLabel | None) -> MultiLabelling:
-#     test_node_multilabel = analyse_node(node["test"], policy, multi_labelling, vulnerabilities, False, implicit_flow_multilabel)
-#     if test_node_multilabel:
-#         test_node_multilabel.convert_implicit()
-#         if implicit_flow_multilabel:
-#             test_node_multilabel = combineMultiLabels(test_node_multilabel, implicit_flow_multilabel)
-#     while_multilabelling = multi_labelling.deep_copy()
-#     another_clone = multi_labelling.deep_copy()
-#     for while_node in node["body"]:
-#         analyse_node(while_node, policy, while_multilabelling, vulnerabilities, True, test_node_multilabel)
-#     for while_node in reversed(node["body"]):
-#         analyse_node(while_node, policy, while_multilabelling, vulnerabilities, False, test_node_multilabel)
-#     another_clone.combine(while_multilabelling)
-#     multi_labelling.swap(another_clone)
-#     if test_node_multilabel:
-#         for varname in multi_labelling.defined_names:
-#             if varname in multi_labelling.labels:
-#                 multi_labelling.update_multilabel_for_name(varname, combineMultiLabels(multi_labelling.labels[varname], test_node_multilabel))
-#             else:
-#                 multi_labelling.update_multilabel_for_name(varname, test_node_multilabel)
