@@ -27,23 +27,27 @@ class Vulnerabilities:
                     
                     _sanitizers = label.get_sanitizers_of_source(src[0], src[1])
                     
-                    # Normalize sanitized flows first
+                    # Normalize and sort sanitized flows
                     unique_sanitizer_flows = []
                     for flow in _sanitizers:
                         if len(flow) > 0:  # Only include non-empty flows
+                            # Sort sanitizers within each flow by line number then name
                             sorted_flow = sorted(list(flow), key=lambda x: (x[1], x[0]))
                             if sorted_flow not in unique_sanitizer_flows:
                                 unique_sanitizer_flows.append(sorted_flow)
                     
-                    # Sort the flows themselves
-                    unique_sanitizer_flows.sort(key=lambda x: tuple((san[1], san[0]) for san in x))
+                    # Sort flows by their first sanitizer's line number
+                    unique_sanitizer_flows.sort(key=lambda flow: tuple((san[1], san[0]) for san in flow))
                     
                     # Determine if there are unsanitized flows
                     is_implicit = label.is_implicit() and pattern.implicit
-                    has_unsanitized = len(_sanitizers) == 0 or any(len(s) == 0 for s in _sanitizers)
+                    has_unsanitized = any(len(s) == 0 for s in _sanitizers) if _sanitizers else True
                     
-                    # For implicit flows, if there's at least one sanitizer, it's considered sanitized
-                    if is_implicit and unique_sanitizer_flows:
+                    # Always mark as unsanitized if there are no sanitizers
+                    if not _sanitizers:
+                        are_there_unsanitized_flows = "yes"
+                    # For implicit flows, if there's at least one sanitizer path, it's considered sanitized
+                    elif is_implicit and unique_sanitizer_flows:
                         are_there_unsanitized_flows = "no"
                     else:
                         are_there_unsanitized_flows = "yes" if has_unsanitized else "no"
@@ -65,25 +69,23 @@ class Vulnerabilities:
                         self.vulns.append(new_vuln)
 
     def _vulnerability_exists(self, new_vuln: _Vulnerability) -> bool:
-        # Extract pattern name (e.g., "A" from "A_1")
         new_pattern = new_vuln.vulnerability.split('_')[0]
         
         for vuln in self.vulns:
             existing_pattern = vuln.vulnerability.split('_')[0]
             
-            # Compare all fields except vulnerability name
             if (vuln.source == new_vuln.source and
                 vuln.sink == new_vuln.sink and
                 vuln.unsanitized_flows == new_vuln.unsanitized_flows and
                 sorted([tuple(flow) for flow in vuln.sanitized_flows]) == sorted([tuple(flow) for flow in new_vuln.sanitized_flows]) and
                 vuln.implicit == new_vuln.implicit and
-                existing_pattern == new_pattern):  # Check if patterns match
+                existing_pattern == new_pattern):
                 return True
         return False
 
     def write_to_file(self, path: str):
         output = []
-        for vuln in self.vulns:
+        for vuln in sorted(self.vulns, key=lambda v: v.vulnerability):
             vulnerability_obj = {
                 "vulnerability": vuln.vulnerability,
                 "source": vuln.source,
