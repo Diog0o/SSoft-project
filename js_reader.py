@@ -41,30 +41,51 @@ def assignment(node, policy: Policy, multi_labelling: MultiLabelling, vulnerabil
 
 
 def function_call(node, policy: Policy, multi_labelling: MultiLabelling, vulnerabilities: Vulnerabilities, while_intermediate_evals: bool, implicit_flow_multilabel: MultiLabel | None) -> MultiLabel | None:
+    # Extract the full function name (e.g., a.b.c)
     function_complete_name = _get_name(node)
+    # Extract the function name (e.g., c from a.b.c)
     function_name = function_complete_name.split(".")[-1]
+    
+    # Initialize the final multilabel with the policy patterns
     final_multilabel = MultiLabel(policy.patterns)
+
+    # Process implicit flow multilabel if it exists
     if implicit_flow_multilabel:
         for pattern in policy.get_sanitizers_for_name(function_name):
             implicit_flow_multilabel.add_sanitizer(pattern, function_name, node["loc"]["start"]["line"])
         final_multilabel = combineMultiLabels(final_multilabel, implicit_flow_multilabel)
+
+    # Check if the function or its parent modules are sources
     for name in function_complete_name.split("."):
         for pattern_name in policy.get_sources_for_name(name):
             final_multilabel.add_source(pattern_name, name, node["loc"]["start"]["line"])
-    
-    for arg in node["arguments"]:
+
+    # Check if any parent in the chain is undefined
+    for name in function_complete_name.split(".")[:-1]:
+        if not multi_labelling.is_name_defined(name):
+            for pattern in policy.patterns:
+                final_multilabel.add_source(pattern.name, name, node["loc"]["start"]["line"])
+
+    # Process arguments of the function call
+    for arg in node.get("arguments", []):
         final_multilabel = combineMultiLabels(
             final_multilabel,
             analyse_node(arg, policy, multi_labelling, vulnerabilities, False, implicit_flow_multilabel)
         )
         assert final_multilabel is not None
+
+    # Handle sanitizers associated with this function
     for pattern_name in policy.get_sanitizers_for_name(function_name):
         final_multilabel.add_sanitizer(pattern_name, function_name, node["loc"]["start"]["line"])
+
+    # Determine illegal flows and save vulnerabilities if not in intermediate evaluation
     if not while_intermediate_evals:
         illegal_flows = policy.determine_illegal_flows(function_name, final_multilabel)
         if illegal_flows:
             vulnerabilities.save_vulnerabilities(function_name, node["loc"]["start"]["line"], illegal_flows, policy)
+
     return final_multilabel
+
 
 
 def binop(node, policy: Policy, multi_labelling: MultiLabelling, vulnerabilities: Vulnerabilities, while_intermediate_evals: bool, implicit_flow_multilabel: MultiLabel | None) -> MultiLabel | None:
