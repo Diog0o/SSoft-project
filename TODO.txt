@@ -1,10 +1,10 @@
 Label.py:
 Falta:
-- Meter os _is_implcit e as funcoes
+- Meter os _is_implcit e as funcoes (so adicionar quando os types ja tiverem todos)
 - Meter o deep_copy
 
-Multulabel.py:
+Multilabel.py:
 def print(self):
-def convert_implicit(self):
+def convert_implicit(self): (so adicionar quando os types ja tiverem todos)
 def deep_copy(self):
 def combine(self, other_multi_label: "MultiLabel"): (adicionar outra vez mas com o deep copy)
