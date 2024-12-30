@@ -34,7 +34,7 @@ class Label:
     
     def get_sources_and_sanitizers(self):
         return self._sources_sanitizers_dict
-
+    
     def deep_copy(self):
         clonedLabel = Label()
         clonedLabel._is_implicit = self._is_implicit
