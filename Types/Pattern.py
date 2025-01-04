@@ -1,4 +1,3 @@
-
 class Pattern:
     def __init__(self, vulnerability: str, sources: list[str], sanitizers: list[str], sinks: list[str], implicit: str):
         self.name = vulnerability
